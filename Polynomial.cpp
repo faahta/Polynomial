@@ -1,8 +1,5 @@
 /*
- *  StQ 07.07.2017
- *
- *  Examination Solution
- *  - random file access (in R and W)
+    - random file access (in R and W)
  *  - 2 barriers
  *  - election strategy
  */
@@ -17,7 +14,6 @@
 #include <stdio.h>
 
 #define DEBUG 0
-#define L     (30+1)
 
  /*
   * Select thread calls as:
@@ -57,7 +53,7 @@ DWORD WINAPI threadFunction(LPVOID);
 
 int _tmain(int argc, LPTSTR argv[]) {
 	DWORD n, nIn;
-	DWORD i;
+	INT i;
 
 	// Read Polynomial Degree
 	HANDLE hIn;
@@ -79,7 +75,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 
 	
 	for (i = 0; i < n; i++) {
-		threadData[i].id = i+1;
+		threadData[i].id = i + 1;
 		threadData[i].degree = n;
 		threadData[i].name = argv[1];
 		//_tprintf(_T("creating thread %d\n"), threadData[i].id);
@@ -100,72 +96,75 @@ int _tmain(int argc, LPTSTR argv[]) {
 
 DWORD WINAPI threadFunction(LPVOID lpParam) {
 	INT* th = (INT*)lpParam;
-	INT id = *th;
+	INT id = *th - 1;
 	OVERLAPPED ov = { 0, 0, 0, 0, NULL };
 	HANDLE hIn;
-	hIn = CreateFile(threadData[id-1].name, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	hIn = CreateFile(threadData[id].name, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hIn == INVALID_HANDLE_VALUE) {
 		_tprintf(_T("open file error\n"));
 		return 2;
 	}
 	INT i, row = 0;  DWORD v, c, c0, r, nIn;
+	_tprintf(_T("thread %d\n"),id+1);
 	while (1) {
-		v = row * threadData[id-1].degree * 2;
-#if DEBUG
-		_tprintf(_T("thread %d reads row %d coefficient %d\n"), id, row, sizeof(INT) + v * sizeof(FLOAT));
-#endif
+		v = row * threadData[id].degree * 2;
 		set_overlapped(&ov, v);
-		ReadFile(hIn, &threadData[id-1].var, sizeof(FLOAT), &nIn, &ov);
+		ReadFile(hIn, &threadData[id].var, sizeof(FLOAT), &nIn, &ov);
 		if (nIn == 0) { break; }
 		
 		/*Read variable*/
+		v = row * threadData[id].degree * 2;
 		set_overlapped(&ov, v);
-		ReadFile(hIn, &threadData[id-1].var, sizeof(FLOAT), &nIn, &ov);
+		ReadFile(hIn, &threadData[id].var, sizeof(FLOAT), &nIn, &ov);
 
 		/*Read coefficient*/
-		c = v + (threadData[id-1].id + 1);
+		c = v + (threadData[id].id + 1);
 		set_overlapped(&ov, c);
-		ReadFile(hIn, &threadData[id-1].coef, sizeof(FLOAT), &nIn, &ov);
+		ReadFile(hIn, &threadData[id].coef, sizeof(FLOAT), &nIn, &ov);
 
 		/*Compute term*/
-		threadData[id-1].term = 1;
-		for (i = 0; i < threadData[id-1].id; i++) {
-			threadData[id - 1].term = threadData[id - 1].term * threadData[id - 1].var;
+		threadData[id].term = 1;
+		for (i = 0; i < threadData[id].id; i++) {
+			threadData[id].term = threadData[id].term * threadData[id].var;
 		}
-		threadData[id - 1].term = threadData[id - 1].term * threadData[id - 1].coef;
-
+		threadData[id].term = threadData[id].term * threadData[id].coef;
+#if DEBUG
+		_tprintf(_T("Thread %d read var=%f coeff=%f term=%f reached barrier\n"),
+			threadData[id].id, threadData[id].var,
+			threadData[id].coef, threadData[id].term);
+#endif
 		/*Barrier 1*/
 		WaitForSingleObject(counter->mt, INFINITE);
 			counter->count++;
 			if (counter->count == 1){
 				/*fastest thread*/
-				threadData[id - 1].firstThread = 1;
+				threadData[id].firstThread = 1;
 			} else {
-				threadData[id - 1].firstThread = 0;
+				threadData[id].firstThread = 0;
 			}
-			if (counter->count == threadData[id - 1].degree) {
-				for (i = 0; i < threadData[id - 1].degree; i++)
+			if (counter->count == threadData[id].degree) {
+				for (i = 0; i < threadData[id].degree; i++)
 					ReleaseSemaphore(barrier1, 1, NULL);
 			}
 		ReleaseMutex(counter->mt);
 
 		WaitForSingleObject(barrier1, INFINITE);
-		if (threadData[id - 1].firstThread == 1) {
+		if (threadData[id].firstThread == 1) {
 			/*Read constant coefficient c0*/
 			c0 = v + 1;
 			set_overlapped(&ov, c0);
-			ReadFile(hIn, &threadData[id-1].result, sizeof(FLOAT), &nIn, &ov);
+			ReadFile(hIn, &threadData[id].result, sizeof(FLOAT), &nIn, &ov);
 			/*compute final sum*/
-			for (i = 0; i < threadData[id - 1].degree; i++) {
-				threadData[id - 1].result += threadData[id - 1].term;
+			for (i = 0; i < threadData[id].degree; i++) {
+				threadData[id].result += threadData[i].term;
 			}
 #if DEBUG
-			_tprintf(_T("I'm the first one -> Thread %d Sum=%f\n"), threadData[id-1].id, threadData[id - 1].result);
+			_tprintf(_T("I'm the first one -> Thread %d Sum=%f\n"), threadData[id].id, threadData[id].result);
 #endif
 			/* write result to file*/
-			r = (row + 1) * (threadData[id-1].degree) * 2 - 1;
+			r = (row + 1) * (threadData[id].degree) * 2 - 1;
 			set_overlapped(&ov, r);
-			WriteFile(hIn, &threadData[id-1].result, sizeof(FLOAT), &nIn, &ov);
+			WriteFile(hIn, &threadData[id].result, sizeof(FLOAT), &nIn, &ov);
 
 
 		}
@@ -174,7 +173,7 @@ DWORD WINAPI threadFunction(LPVOID lpParam) {
 		WaitForSingleObject(counter->mt, INFINITE);
 			counter->count--;
 			if (counter->count == 0) {
-				for (i = 0; i < threadData[i].degree; i++)
+				for (i = 0; i < threadData[id].degree; i++)
 					ReleaseSemaphore(barrier2, 1, NULL);
 			}
 		ReleaseMutex(counter->mt);

@@ -3,4 +3,6 @@ C:\Users\Fasil\source\repos\Polynomial\Polynomial\Polynomial.cpp(10,1): warning 
 C:\Users\Fasil\source\repos\Polynomial\Polynomial\Polynomial.cpp(10,1): warning C4005: C:\Users\Fasil\source\repos\Polynomial\Polynomial\Polynomial.cpp: note: see previous definition of 'UNICODE'
 C:\Users\Fasil\source\repos\Polynomial\Polynomial\Polynomial.cpp(11,1): warning C4005:  '_UNICODE': macro redefinition
 C:\Users\Fasil\source\repos\Polynomial\Polynomial\Polynomial.cpp(11,1): warning C4005: C:\Users\Fasil\source\repos\Polynomial\Polynomial\Polynomial.cpp: note: see previous definition of '_UNICODE'
+C:\Users\Fasil\source\repos\Polynomial\Polynomial\Polynomial.cpp(80,16): warning C4018:  '<': signed/unsigned mismatch
+C:\Users\Fasil\source\repos\Polynomial\Polynomial\Polynomial.cpp(92,16): warning C4018:  '<': signed/unsigned mismatch
   Polynomial.vcxproj -> C:\Users\Fasil\source\repos\Polynomial\Debug\Polynomial.exe
